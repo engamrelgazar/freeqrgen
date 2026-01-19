@@ -1,0 +1,115 @@
+name: freeqrgen
+description: "Free Qr Gen - A cross-platform QR code generator with advanced customization"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.9.3 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.5
+  
+  # Dependency Injection
+  get_it: ^8.0.2
+  
+  # QR Generation
+  qr: ^3.0.1
+  qr_flutter: ^4.1.0
+  
+  # File Operations
+  file_picker: ^8.1.4
+  path_provider: ^2.1.5
+  permission_handler: ^11.3.1
+  
+  # Export
+  pdf: ^3.11.1
+  printing: ^5.13.4
+  share_plus: ^10.1.2
+  
+  # Image Processing
+  image: ^4.3.0
+  
+  # UI
+  flex_color_picker: ^3.6.0
+  
+  # Utilities
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  bloc_test: ^9.1.7
+  mocktail: ^1.0.4
+  flutter_launcher_icons: ^0.14.2
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+  # Assets
+  assets:
+    - assets/imgs/logo/colored_logo.png
+    - assets/imgs/logo/logo_white_without_background.png
+
+  # An image asset can refer to one or more resolution-specific "variants", see
+  # https://flutter.dev/to/resolution-aware-images
+
+  # For details regarding adding assets from package dependencies, see
+  # https://flutter.dev/to/asset-from-package
+
+  # To add custom fonts to your application, add a fonts section here,
+  # in this "flutter" section. Each entry in this list should have a
+  # "family" key with the font family name, and a "fonts" key with a
+  # list giving the asset and other descriptors for the font. For
+  # example:
+  # fonts:
+  #   - family: Schyler
+  #     fonts:
+  #       - asset: fonts/Schyler-Regular.ttf
+  #       - asset: fonts/Schyler-Italic.ttf
+  #         style: italic
+  #   - family: Trajan Pro
+  #     fonts:
+  #       - asset: fonts/TrajanPro.ttf
+  #       - asset: fonts/TrajanPro_Bold.ttf
+  #         weight: 700
+  #
+  # For details regarding fonts from package dependencies,
+  # see https://flutter.dev/to/font-from-package
+
+# App Icon Configuration
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/imgs/logo/colored_logo.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/imgs/logo/colored_logo.png"
+    background_color: "#1956b4"
+    theme_color: "#1956b4"
+  windows:
+    generate: true
+    image_path: "assets/imgs/logo/colored_logo.png"
+    icon_size: 48
+  macos:
+    generate: true
+    image_path: "assets/imgs/logo/colored_logo.png"
+  linux:
+    generate: true
+    image_path: "assets/imgs/logo/colored_logo.png"
