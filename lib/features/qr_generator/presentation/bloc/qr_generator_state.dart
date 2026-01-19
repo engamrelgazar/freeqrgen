@@ -13,6 +13,9 @@ class QRGeneratorState extends Equatable {
   final QRResult? qrResult;
   final bool isGenerating;
   final bool isPickingLogo;
+  final bool isExporting;
+  final bool exportSuccess;
+  final String? exportMessage;
   final String? errorMessage;
   final String? validationError;
   final Map<String, FormFieldState> formFields;
@@ -24,6 +27,9 @@ class QRGeneratorState extends Equatable {
     this.qrResult,
     this.isGenerating = false,
     this.isPickingLogo = false,
+    this.isExporting = false,
+    this.exportSuccess = false,
+    this.exportMessage,
     this.errorMessage,
     this.validationError,
     this.formFields = const {},
@@ -45,6 +51,9 @@ class QRGeneratorState extends Equatable {
     QRResult? qrResult,
     bool? isGenerating,
     bool? isPickingLogo,
+    bool? isExporting,
+    bool? exportSuccess,
+    String? exportMessage,
     String? errorMessage,
     String? validationError,
     Map<String, FormFieldState>? formFields,
@@ -52,6 +61,7 @@ class QRGeneratorState extends Equatable {
     bool clearValidationError = false,
     bool clearQRResult = false,
     bool clearFormFields = false,
+    bool clearExportMessage = false,
   }) {
     return QRGeneratorState(
       selectedContentType: selectedContentType ?? this.selectedContentType,
@@ -60,6 +70,11 @@ class QRGeneratorState extends Equatable {
       qrResult: clearQRResult ? null : (qrResult ?? this.qrResult),
       isGenerating: isGenerating ?? this.isGenerating,
       isPickingLogo: isPickingLogo ?? this.isPickingLogo,
+      isExporting: isExporting ?? this.isExporting,
+      exportSuccess: exportSuccess ?? this.exportSuccess,
+      exportMessage: clearExportMessage
+          ? null
+          : (exportMessage ?? this.exportMessage),
       errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
       validationError: clearValidationError
           ? null
@@ -87,14 +102,17 @@ class QRGeneratorState extends Equatable {
 
   @override
   List<Object?> get props => [
-        selectedContentType,
-        content,
-        customization,
-        qrResult,
-        isGenerating,
-        isPickingLogo,
-        errorMessage,
-        validationError,
-        formFields,
-      ];
+    selectedContentType,
+    content,
+    customization,
+    qrResult,
+    isGenerating,
+    isPickingLogo,
+    isExporting,
+    exportSuccess,
+    exportMessage,
+    errorMessage,
+    validationError,
+    formFields,
+  ];
 }

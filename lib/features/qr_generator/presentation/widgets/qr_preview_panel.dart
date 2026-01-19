@@ -4,6 +4,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:freeqrgen/core/constants/app_constants.dart';
 import 'package:freeqrgen/features/qr_generator/domain/entities/qr_customization.dart';
 import 'package:freeqrgen/features/qr_generator/presentation/bloc/qr_generator_bloc.dart';
+import 'package:freeqrgen/features/qr_generator/presentation/bloc/qr_generator_event.dart';
 import 'package:freeqrgen/features/qr_generator/presentation/bloc/qr_generator_state.dart';
 
 /// Widget to preview generated QR code with animations
@@ -13,6 +14,12 @@ class QRPreviewPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<QRGeneratorBloc, QRGeneratorState>(
+      buildWhen: (previous, current) {
+        // Only rebuild when QR result, customization, or export status changes
+        return previous.qrResult != current.qrResult ||
+            previous.customization != current.customization ||
+            previous.isExporting != current.isExporting;
+      },
       builder: (context, state) {
         return Card(
           child: SingleChildScrollView(
@@ -111,8 +118,8 @@ class QRPreviewPanel extends StatelessWidget {
         embeddedImageStyle: customization.hasLogo
             ? QrEmbeddedImageStyle(
                 size: Size(
-                  300 * customization.logoSizePercent / 100,
-                  300 * customization.logoSizePercent / 100,
+                  300.0 * customization.logoSizePercent / 100,
+                  300.0 * customization.logoSizePercent / 100,
                 ),
               )
             : null,
@@ -187,14 +194,34 @@ class QRPreviewPanel extends StatelessWidget {
         final bool useColumn = constraints.maxWidth < 360;
 
         final pngButton = _AnimatedButton(
-          onPressed: state.qrResult != null ? () {} : null,
-          icon: const Icon(Icons.download),
+          onPressed: state.qrResult != null && !state.isExporting
+              ? () {
+                  context.read<QRGeneratorBloc>().add(const ExportPNG());
+                }
+              : null,
+          icon: state.isExporting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.download),
           label: const Text('Export PNG'),
         );
 
         final pdfButton = _AnimatedButton(
-          onPressed: state.qrResult != null ? () {} : null,
-          icon: const Icon(Icons.picture_as_pdf),
+          onPressed: state.qrResult != null && !state.isExporting
+              ? () {
+                  context.read<QRGeneratorBloc>().add(const ExportPDF());
+                }
+              : null,
+          icon: state.isExporting
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.picture_as_pdf),
           label: const Text('Export PDF'),
         );
 

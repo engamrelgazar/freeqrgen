@@ -15,6 +15,11 @@ class CustomizationPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<QRGeneratorBloc, QRGeneratorState>(
+      buildWhen: (previous, current) {
+        // Only rebuild when customization or logo picking status changes
+        return previous.customization != current.customization ||
+            previous.isPickingLogo != current.isPickingLogo;
+      },
       builder: (context, state) {
         return Card(
           child: Padding(

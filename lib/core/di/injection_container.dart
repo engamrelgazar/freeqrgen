@@ -3,6 +3,8 @@ import 'package:freeqrgen/core/platform/file_picker_service.dart';
 import 'package:freeqrgen/core/platform/file_saver_service.dart';
 import 'package:freeqrgen/core/platform/implementations/file_picker_service_impl.dart';
 import 'package:freeqrgen/core/platform/implementations/file_saver_service_impl.dart';
+import 'package:freeqrgen/core/services/qr_export_service.dart';
+import 'package:freeqrgen/core/services/platform_file_saver.dart';
 import 'package:freeqrgen/core/theme/bloc/theme_bloc.dart';
 import 'package:freeqrgen/features/qr_generator/data/datasources/qr_generator_datasource.dart';
 import 'package:freeqrgen/features/qr_generator/data/repositories/qr_repository_impl.dart';
@@ -19,6 +21,10 @@ Future<void> initializeDependencies() async {
   sl.registerLazySingleton<FilePickerService>(() => FilePickerServiceImpl());
 
   sl.registerLazySingleton<FileSaverService>(() => FileSaverServiceImpl());
+
+  sl.registerLazySingleton<QRExportService>(() => QRExportService());
+
+  sl.registerLazySingleton<PlatformFileSaver>(() => PlatformFileSaver());
 
   // Core BLoCs
   sl.registerLazySingleton<ThemeBloc>(() => ThemeBloc());
@@ -43,6 +49,8 @@ Future<void> initializeDependencies() async {
       generateQRCode: sl(),
       validateContent: sl(),
       filePickerService: sl(),
+      exportService: sl(),
+      fileSaver: sl(),
     ),
   );
 }

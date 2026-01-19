@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:freeqrgen/core/platform/file_picker_service.dart';
+import 'package:freeqrgen/core/services/qr_export_service.dart';
+import 'package:freeqrgen/core/services/platform_file_saver.dart';
 import 'package:freeqrgen/core/utils/content_validators.dart';
 import 'package:freeqrgen/features/qr_generator/domain/entities/form_field_state.dart';
 import 'package:freeqrgen/features/qr_generator/domain/usecases/generate_qr_code.dart';
@@ -12,11 +14,15 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
   final GenerateQRCode generateQRCode;
   final ValidateContent validateContent;
   final FilePickerService filePickerService;
+  final QRExportService exportService;
+  final PlatformFileSaver fileSaver;
 
   QRGeneratorBloc({
     required this.generateQRCode,
     required this.validateContent,
     required this.filePickerService,
+    required this.exportService,
+    required this.fileSaver,
   }) : super(QRGeneratorState.initial()) {
     on<ChangeContentType>(_onChangeContentType);
     on<UpdateContent>(_onUpdateContent);
@@ -28,6 +34,8 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
     on<UpdateFormField>(_onUpdateFormField);
     on<ValidateFormField>(_onValidateFormField);
     on<ClearFormFields>(_onClearFormFields);
+    on<ExportPNG>(_onExportPNG);
+    on<ExportPDF>(_onExportPDF);
   }
 
   /// Handle content type change
@@ -35,37 +43,40 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
     ChangeContentType event,
     Emitter<QRGeneratorState> emit,
   ) {
-    emit(state.copyWith(
-      selectedContentType: event.contentType,
-      content: null,
-      clearQRResult: true,
-      clearError: true,
-      clearValidationError: true,
-      clearFormFields: true,
-    ));
+    emit(
+      state.copyWith(
+        selectedContentType: event.contentType,
+        content: null,
+        clearQRResult: true,
+        clearError: true,
+        clearValidationError: true,
+        clearFormFields: true,
+      ),
+    );
   }
 
   /// Handle content update
-  void _onUpdateContent(
-    UpdateContent event,
-    Emitter<QRGeneratorState> emit,
-  ) {
+  void _onUpdateContent(UpdateContent event, Emitter<QRGeneratorState> emit) {
     // Validate content
     final validationResult = validateContent(event.content);
-    
+
     if (validationResult.isLeft) {
-      emit(state.copyWith(
-        content: event.content,
-        validationError: validationResult.left.message,
-        clearQRResult: true,
-      ));
+      emit(
+        state.copyWith(
+          content: event.content,
+          validationError: validationResult.left.message,
+          clearQRResult: true,
+        ),
+      );
     } else {
-      emit(state.copyWith(
-        content: event.content,
-        clearValidationError: true,
-        clearError: true,
-      ));
-      
+      emit(
+        state.copyWith(
+          content: event.content,
+          clearValidationError: true,
+          clearError: true,
+        ),
+      );
+
       // Auto-generate QR code if content is valid
       add(const GenerateQR());
     }
@@ -76,10 +87,8 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
     UpdateCustomization event,
     Emitter<QRGeneratorState> emit,
   ) {
-    emit(state.copyWith(
-      customization: event.customization,
-    ));
-    
+    emit(state.copyWith(customization: event.customization));
+
     // Regenerate QR if content exists
     if (state.content != null) {
       add(const GenerateQR());
@@ -93,10 +102,7 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
   ) async {
     if (state.content == null) return;
 
-    emit(state.copyWith(
-      isGenerating: true,
-      clearError: true,
-    ));
+    emit(state.copyWith(isGenerating: true, clearError: true));
 
     final result = await generateQRCode(
       content: state.content!,
@@ -105,17 +111,18 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
 
     result.fold(
       (failure) {
-        emit(state.copyWith(
-          isGenerating: false,
-          errorMessage: failure.message,
-        ));
+        emit(
+          state.copyWith(isGenerating: false, errorMessage: failure.message),
+        );
       },
       (qrResult) {
-        emit(state.copyWith(
-          isGenerating: false,
-          qrResult: qrResult,
-          clearError: true,
-        ));
+        emit(
+          state.copyWith(
+            isGenerating: false,
+            qrResult: qrResult,
+            clearError: true,
+          ),
+        );
       },
     );
   }
@@ -129,17 +136,19 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
 
     try {
       final imageBytes = await filePickerService.pickImage();
-      
+
       if (imageBytes != null) {
         final updatedCustomization = state.customization.copyWith(
           logoBytes: imageBytes,
         );
-        
-        emit(state.copyWith(
-          customization: updatedCustomization,
-          isPickingLogo: false,
-        ));
-        
+
+        emit(
+          state.copyWith(
+            customization: updatedCustomization,
+            isPickingLogo: false,
+          ),
+        );
+
         // Regenerate QR with logo
         if (state.content != null) {
           add(const GenerateQR());
@@ -148,26 +157,21 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
         emit(state.copyWith(isPickingLogo: false));
       }
     } catch (e) {
-      emit(state.copyWith(
-        isPickingLogo: false,
-        errorMessage: 'Failed to pick image: ${e.toString()}',
-      ));
+      emit(
+        state.copyWith(
+          isPickingLogo: false,
+          errorMessage: 'Failed to pick image: ${e.toString()}',
+        ),
+      );
     }
   }
 
   /// Handle logo removal
-  void _onRemoveLogo(
-    RemoveLogo event,
-    Emitter<QRGeneratorState> emit,
-  ) {
-    final updatedCustomization = state.customization.copyWith(
-      clearLogo: true,
-    );
-    
-    emit(state.copyWith(
-      customization: updatedCustomization,
-    ));
-    
+  void _onRemoveLogo(RemoveLogo event, Emitter<QRGeneratorState> emit) {
+    final updatedCustomization = state.customization.copyWith(clearLogo: true);
+
+    emit(state.copyWith(customization: updatedCustomization));
+
     // Regenerate QR without logo
     if (state.content != null) {
       add(const GenerateQR());
@@ -189,7 +193,7 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
   ) {
     final updatedFields = Map<String, FormFieldState>.from(state.formFields);
     final currentField = state.getFieldState(event.fieldKey);
-    
+
     updatedFields[event.fieldKey] = currentField.copyWith(
       value: event.value,
       clearError: true,
@@ -204,10 +208,10 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
     Emitter<QRGeneratorState> emit,
   ) {
     final updatedFields = Map<String, FormFieldState>.from(state.formFields);
-    
+
     // Perform validation based on field key
     final validationResult = _validateField(event.fieldKey, event.value);
-    
+
     if (validationResult.isValid) {
       updatedFields[event.fieldKey] = FormFieldState.valid(event.value);
     } else {
@@ -269,6 +273,108 @@ class QRGeneratorBloc extends Bloc<QRGeneratorEvent, QRGeneratorState> {
         return ContentValidators.validateTwitterUsername(value);
       default:
         return ValidationResult.valid();
+    }
+  }
+
+  /// Handle PNG export
+  Future<void> _onExportPNG(
+    ExportPNG event,
+    Emitter<QRGeneratorState> emit,
+  ) async {
+    if (state.qrResult == null) return;
+
+    emit(
+      state.copyWith(
+        isExporting: true,
+        clearError: true,
+        clearExportMessage: true,
+      ),
+    );
+
+    try {
+      // Generate PNG bytes
+      final pngBytes = await exportService.exportToPNG(
+        qrResult: state.qrResult!,
+        customization: state.customization,
+      );
+
+      // Save to platform-specific location
+      final success = await fileSaver.savePNG(bytes: pngBytes);
+
+      if (success) {
+        emit(
+          state.copyWith(
+            isExporting: false,
+            exportSuccess: true,
+            exportMessage: 'QR code saved successfully',
+          ),
+        );
+      } else {
+        emit(
+          state.copyWith(
+            isExporting: false,
+            errorMessage: 'Failed to save QR code',
+          ),
+        );
+      }
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isExporting: false,
+          errorMessage: 'Export failed: ${e.toString()}',
+        ),
+      );
+    }
+  }
+
+  /// Handle PDF export
+  Future<void> _onExportPDF(
+    ExportPDF event,
+    Emitter<QRGeneratorState> emit,
+  ) async {
+    if (state.qrResult == null) return;
+
+    emit(
+      state.copyWith(
+        isExporting: true,
+        clearError: true,
+        clearExportMessage: true,
+      ),
+    );
+
+    try {
+      // Generate PDF bytes
+      final pdfBytes = await exportService.exportToPDF(
+        qrResult: state.qrResult!,
+        customization: state.customization,
+      );
+
+      // Save to platform-specific location
+      final success = await fileSaver.savePDF(bytes: pdfBytes);
+
+      if (success) {
+        emit(
+          state.copyWith(
+            isExporting: false,
+            exportSuccess: true,
+            exportMessage: 'PDF saved successfully',
+          ),
+        );
+      } else {
+        emit(
+          state.copyWith(
+            isExporting: false,
+            errorMessage: 'Failed to save PDF',
+          ),
+        );
+      }
+    } catch (e) {
+      emit(
+        state.copyWith(
+          isExporting: false,
+          errorMessage: 'Export failed: ${e.toString()}',
+        ),
+      );
     }
   }
 }

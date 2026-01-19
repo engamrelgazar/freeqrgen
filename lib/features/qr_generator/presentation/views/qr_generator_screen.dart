@@ -41,6 +41,11 @@ class QRGeneratorScreen extends StatelessWidget {
         ],
       ),
       body: BlocListener<QRGeneratorBloc, QRGeneratorState>(
+        listenWhen: (previous, current) {
+          // Only listen when error or export messages change
+          return previous.errorMessage != current.errorMessage ||
+              previous.exportMessage != current.exportMessage;
+        },
         listener: (context, state) {
           // Show error messages
           if (state.errorMessage != null) {
@@ -48,6 +53,24 @@ class QRGeneratorScreen extends StatelessWidget {
               SnackBar(
                 content: Text(state.errorMessage!),
                 backgroundColor: Theme.of(context).colorScheme.error,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+
+          // Show export success messages
+          if (state.exportSuccess && state.exportMessage != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    const Icon(Icons.check_circle, color: Colors.white),
+                    const SizedBox(width: 12),
+                    Expanded(child: Text(state.exportMessage!)),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+                duration: const Duration(seconds: 2),
               ),
             );
           }

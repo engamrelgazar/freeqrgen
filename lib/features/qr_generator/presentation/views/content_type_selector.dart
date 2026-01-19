@@ -14,6 +14,10 @@ class ContentTypeSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<QRGeneratorBloc, QRGeneratorState>(
+      buildWhen: (previous, current) {
+        // Only rebuild when selected content type changes
+        return previous.selectedContentType != current.selectedContentType;
+      },
       builder: (context, state) {
         return Card(
           child: Padding(

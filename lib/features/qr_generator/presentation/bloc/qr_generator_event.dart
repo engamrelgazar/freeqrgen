@@ -87,3 +87,13 @@ class ValidateFormField extends QRGeneratorEvent {
 class ClearFormFields extends QRGeneratorEvent {
   const ClearFormFields();
 }
+
+/// Event to export QR as PNG
+class ExportPNG extends QRGeneratorEvent {
+  const ExportPNG();
+}
+
+/// Event to export QR as PDF
+class ExportPDF extends QRGeneratorEvent {
+  const ExportPDF();
+}
