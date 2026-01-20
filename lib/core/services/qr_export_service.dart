@@ -16,23 +16,10 @@ class QRExportService {
     int size = 1024,
   }) async {
     try {
-      print('QRExportService.exportToPNG: Starting export, size=$size');
-      print(
-        'QRExportService.exportToPNG: QR data length=${qrResult.qrString.length}',
-      );
-
       // Decode logo image if present
       ui.Image? logoImage;
       if (customization.hasLogo) {
-        print('QRExportService.exportToPNG: Decoding logo...');
         logoImage = await decodeImageFromList(customization.logoBytes!);
-        print(
-          'QRExportService.exportToPNG: Logo decoded: ${logoImage.width}x${logoImage.height}',
-        );
-        final logoSize = size.toDouble() * customization.logoSizePercent / 100;
-        print(
-          'QRExportService.exportToPNG: Logo size percent=${customization.logoSizePercent}%, calculated size=${logoSize}px',
-        );
       }
 
       // Create QR painter
@@ -59,8 +46,6 @@ class QRExportService {
             : null,
       );
 
-      print('QRExportService.exportToPNG: QR painter created');
-
       // Create a picture recorder
       final recorder = ui.PictureRecorder();
       final canvas = Canvas(recorder);
@@ -73,11 +58,9 @@ class QRExportService {
       );
 
       // Paint QR code
-      print('QRExportService.exportToPNG: Painting QR code...');
       qrPainter.paint(canvas, Size(size.toDouble(), size.toDouble()));
 
       // Convert to image
-      print('QRExportService.exportToPNG: Converting to image...');
       final picture = recorder.endRecording();
       final uiImage = await picture.toImage(size, size);
       final byteData = await uiImage.toByteData(format: ui.ImageByteFormat.png);
@@ -87,12 +70,8 @@ class QRExportService {
       }
 
       final bytes = byteData.buffer.asUint8List();
-      print(
-        'QRExportService.exportToPNG: Success! Generated ${bytes.length} bytes',
-      );
       return bytes;
     } catch (e) {
-      print('QRExportService.exportToPNG error: $e');
       throw Exception('Failed to export PNG: $e');
     }
   }
@@ -127,8 +106,6 @@ class QRExportService {
     required QRCustomization customization,
   }) async {
     try {
-      print('QRExportService.exportToPDF: Starting PDF export');
-
       final pdf = pw.Document();
 
       // First, generate PNG
@@ -137,8 +114,6 @@ class QRExportService {
         customization: customization,
         size: 2048, // High resolution for PDF
       );
-
-      print('QRExportService.exportToPDF: PNG generated, creating PDF...');
 
       // Create PDF page
       pdf.addPage(
@@ -168,12 +143,8 @@ class QRExportService {
       );
 
       final pdfBytes = await pdf.save();
-      print(
-        'QRExportService.exportToPDF: Success! Generated ${pdfBytes.length} bytes',
-      );
       return pdfBytes;
     } catch (e) {
-      print('QRExportService.exportToPDF error: $e');
       throw Exception('Failed to export PDF: $e');
     }
   }

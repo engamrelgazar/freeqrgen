@@ -1,8 +1,10 @@
 import 'dart:typed_data';
 import 'dart:io' show File;
+import 'dart:ui' show Rect;
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:gal/gal.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:freeqrgen/core/utils/platform_utils.dart';
 import 'package:freeqrgen/core/constants/export_constants.dart';
 
@@ -26,7 +28,6 @@ class PlatformFileSaver {
       }
       return false;
     } catch (e) {
-      print('PlatformFileSaver.savePNG error: $e');
       rethrow;
     }
   }
@@ -40,13 +41,13 @@ class PlatformFileSaver {
       if (PlatformUtils.isWeb) {
         return await _saveFileWeb(bytes, fileName);
       } else if (PlatformUtils.isMobile) {
-        return await _saveToGallery(bytes, fileName);
+        // PDF cannot be saved to gallery, save to Documents/Downloads instead
+        return await _savePDFToDocuments(bytes, fileName);
       } else if (PlatformUtils.isDesktop) {
         return await _saveFileDesktop(bytes, fileName, 'PDF Files (*.pdf)');
       }
       return false;
     } catch (e) {
-      print('PlatformFileSaver.savePDF error: $e');
       rethrow;
     }
   }
@@ -64,18 +65,14 @@ class PlatformFileSaver {
     }
   }
 
-  /// Save to gallery on mobile (iOS/Android)
+  /// Save to gallery on mobile (iOS/Android) - Images only
   Future<bool> _saveToGallery(Uint8List bytes, String fileName) async {
     try {
-      print('_saveToGallery: Starting for $fileName');
-
       // Check if we have permission
       final hasAccess = await Gal.hasAccess();
-      print('_saveToGallery: hasAccess = $hasAccess');
 
       if (!hasAccess) {
         final granted = await Gal.requestAccess();
-        print('_saveToGallery: permission granted = $granted');
         if (!granted) {
           throw Exception('Gallery permission denied');
         }
@@ -84,20 +81,45 @@ class PlatformFileSaver {
       // Save to temporary file first
       final tempDir = await getTemporaryDirectory();
       final tempFile = File('${tempDir.path}/$fileName');
-      print('_saveToGallery: Writing to temp file: ${tempFile.path}');
       await tempFile.writeAsBytes(bytes);
 
-      // Save to gallery
-      print('_saveToGallery: Saving to gallery...');
+      // Save to gallery (images only)
       await Gal.putImage(tempFile.path);
-      print('_saveToGallery: Successfully saved to gallery');
 
       // Clean up temp file
       await tempFile.delete();
 
       return true;
     } catch (e) {
-      print('_saveToGallery error: $e');
+      rethrow;
+    }
+  }
+
+  /// Save/Share PDF on mobile (iOS/Android)
+  /// PDFs cannot be saved to gallery, so we share them using the system share sheet
+  /// User can then save to Files app, iCloud, Google Drive, etc.
+  Future<bool> _savePDFToDocuments(Uint8List bytes, String fileName) async {
+    try {
+      // Save to temporary directory first
+      final tempDir = await getTemporaryDirectory();
+      final filePath = '${tempDir.path}/$fileName';
+
+      // Save file
+      final file = File(filePath);
+      await file.writeAsBytes(bytes);
+
+      // Share the file using system share sheet
+      final result = await Share.shareXFiles(
+        [XFile(filePath, mimeType: 'application/pdf')],
+        text: 'QR Code PDF',
+        // Add share position for iPad compatibility
+        sharePositionOrigin: const Rect.fromLTWH(0, 0, 1, 1),
+      );
+
+      // Return true if shared or dismissed (user saw the options)
+      return result.status == ShareResultStatus.success ||
+          result.status == ShareResultStatus.dismissed;
+    } catch (e) {
       rethrow;
     }
   }
@@ -109,29 +131,19 @@ class PlatformFileSaver {
     String fileTypeLabel,
   ) async {
     try {
-      print('_saveFileDesktop: Opening file picker for $fileName');
-
       // On desktop, saveFile doesn't work reliably
       // Use getDirectoryPath instead and let user choose directory
       final directoryPath = await FilePicker.platform.getDirectoryPath(
         dialogTitle: 'Choose where to save QR Code',
       );
 
-      print('_saveFileDesktop: Selected directory = $directoryPath');
-
       if (directoryPath != null) {
         final file = File('$directoryPath/$fileName');
-        print(
-          '_saveFileDesktop: Writing ${bytes.length} bytes to ${file.path}',
-        );
         await file.writeAsBytes(bytes);
-        print('_saveFileDesktop: Successfully saved to ${file.path}');
         return true;
       }
-      print('_saveFileDesktop: User cancelled');
       return false;
     } catch (e) {
-      print('_saveFileDesktop error: $e');
       rethrow;
     }
   }
